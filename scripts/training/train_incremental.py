@@ -35,7 +35,6 @@ def load_yaml_config(config_path: str) -> Dict:
 
 def update_config_for_incremental(config: Dict, batch_start: int, checkpoint_path: str) -> Dict:
     """Update configuration for incremental training"""
-    # Create a copy to avoid modifying the original
     config = config.copy()
     
     # Update training data path to only include one path
@@ -48,14 +47,10 @@ def update_config_for_incremental(config: Dict, batch_start: int, checkpoint_pat
     if checkpoint_path:
         config['model_id'] = checkpoint_path
         
-    # Adjust batch size and other parameters for incremental training
-    config['per_device_train_batch_size'] = min(
-        config.get('per_device_train_batch_size', 32),
-        8  # Smaller default batch size for incremental training
-    )
-    
     # Add batch information to output directory
-    config['output_dir'] = str(Path(config['output_dir']) / f"batch_{batch_start}")
+    # Make sure we create consistent paths
+    base_output = Path(config['output_dir'])
+    config['output_dir'] = str(base_output / f"batch_{batch_start}")
     
     return config
 
@@ -202,9 +197,11 @@ def incremental_training(
     # Train
     trainer.train()
     
-    # Save final checkpoint
-    output_path = f"{config['output_dir']}/checkpoint-final-batch-{batch_start}"
-    trainer.save_model(output_path)
+    # Save final checkpoint with consistent path
+    output_dir = Path(config['output_dir'])
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"checkpoint-final-batch-{batch_start}"
+    trainer.save_model(str(output_path))
     logger.info(f"Saved final checkpoint to {output_path}")
 
 if __name__ == "__main__":

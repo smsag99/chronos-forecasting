@@ -66,7 +66,7 @@ def create_test_config(data_paths):
         "context_length": 64,
         "prediction_length": 16,
         "min_past": 32,
-        "max_steps": 10,  # Small number of steps for testing
+        "max_steps": 20,  # Small number of steps for testing
         "save_steps": 5,
         "log_steps": 2,
         "per_device_train_batch_size": 2,
@@ -120,32 +120,43 @@ def test_training_pipeline():
                 device_map="cpu"
             )
             
-            # Verify checkpoint was created
-            checkpoint_path = tmp_dir / "output/batch_0/checkpoint-final-batch-0"
-            assert checkpoint_path.exists(), "Checkpoint not created"
-            logger.info("First batch checkpoint created successfully")
+            first_batch_path = (
+                tmp_dir 
+                / "output" 
+                / "batch_0" 
+                / "checkpoint-final-batch-0"
+            )
+            assert first_batch_path.exists(), f"First checkpoint not created at {first_batch_path}"
+            logger.info(f"First batch checkpoint created at {first_batch_path}")
+            
             
             # Run second batch from checkpoint
             logger.info("Testing second batch training from checkpoint...")
+            # Run second batch using correct checkpoint path
             incremental_training(
                 config_path=str(config_path),
-                checkpoint_path=str(checkpoint_path),
+                checkpoint_path=str(first_batch_path),
                 batch_size=5,
                 batch_start=1,
                 device_map="cpu"
             )
             
-            # Verify second checkpoint was created
-            checkpoint_path_2 = tmp_dir / "output/batch_1/checkpoint-final-batch-1"
-            assert checkpoint_path_2.exists(), "Second checkpoint not created"
-            logger.info("Second batch checkpoint created successfully")
+            # Check second checkpoint with correct path
+            second_batch_path = (
+                tmp_dir 
+                / "output" 
+                / "batch_1" 
+                / "checkpoint-final-batch-1"
+            )
+            assert second_batch_path.exists(), f"Second checkpoint not created at {second_batch_path}"
+            logger.info(f"Second batch checkpoint created at {second_batch_path}")
             
             # Load final model and try a prediction
             logger.info("Testing model prediction...")
             from transformers import AutoConfig, AutoModelForSeq2SeqLM
             
-            config = AutoConfig.from_pretrained(checkpoint_path_2)
-            model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint_path_2)
+            config = AutoConfig.from_pretrained(second_batch_path)
+            model = AutoModelForSeq2SeqLM.from_pretrained(second_batch_path)
             chronos_config = ChronosConfig(**config.chronos_config)
             
             # Create a simple input
