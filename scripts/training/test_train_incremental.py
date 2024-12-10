@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def generate_test_data(tmp_dir: Path, n_synthetic: int = 5, n_mixup: int = 5):
     """Generate test data using both KernelSynth and TSMixup"""
     logger.info("Loading source datasets for TSMixup...")
-    series_list = load_chronos_datasets()
+    series_list = load_chronos_datasets(max_zero_or_nan=0.9)
     
     # Generate KernelSynth data
     logger.info(f"Generating {n_synthetic} KernelSynth time series...")

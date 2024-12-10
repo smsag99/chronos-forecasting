@@ -23,8 +23,8 @@ CHRONOS_DATASETS = [
     "electricity_15min",  # Common energy dataset
     "m4_hourly",  # M4 competition hourly data
     "monash_traffic",  # Traffic volume data
-#    "weatherbench_weekly",  # Weather time series
-#    "solar",  # Solar power generation
+    #"weatherbench_weekly",  # Weather time series
+    "solar",  # Solar power generation
 ]
 KERNEL_BANK = [
     # Seasonal/Periodic patterns for different frequencies
@@ -188,4 +188,4 @@ def generate_datasets(output_dir: str, n_synthetic: int = 1000, n_mixup: int = 1
     ArrowWriter(compression="lz4").write_to_file(mixup_data, output_dir / "tsmixup_data.arrow")
 
 
-generate_datasets('./generated_datasets')
+#generate_datasets('./generated_datasets')
