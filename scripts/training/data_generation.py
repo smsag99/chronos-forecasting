@@ -116,6 +116,8 @@ def load_chronos_datasets(max_zero_or_nan):
             ds = load_dataset("autogluon/chronos_datasets", dataset_name, split='train', cache_dir='./cache')
             if dataset_name=='electricity_15min':
                 series = ds['consumption_kW']
+            elif dataset_name == 'solar':
+                series = ds['power_mw']
             else:
                 series = ds["target"]
             previous_length = len(series)
