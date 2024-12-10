@@ -24,7 +24,7 @@ CHRONOS_DATASETS = [
     "m4_hourly",  # M4 competition hourly data
     "monash_traffic",  # Traffic volume data
     #"weatherbench_weekly",  # Weather time series
-    "solar",  # Solar power generation
+    "solar_1h",  # Solar power generation
 ]
 KERNEL_BANK = [
     # Seasonal/Periodic patterns for different frequencies
@@ -116,7 +116,7 @@ def load_chronos_datasets(max_zero_or_nan):
             ds = load_dataset("autogluon/chronos_datasets", dataset_name, split='train', cache_dir='./cache')
             if dataset_name=='electricity_15min':
                 series = ds['consumption_kW']
-            elif dataset_name == 'solar':
+            elif dataset_name == 'solar_1h':
                 series = ds['power_mw']
             else:
                 series = ds["target"]
@@ -191,3 +191,5 @@ def generate_datasets(output_dir: str, n_synthetic: int = 1000, n_mixup: int = 1
 
 
 #generate_datasets('./generated_datasets')
+if __name__ == "__main__":
+    generate_datasets('./generated_datasets')
