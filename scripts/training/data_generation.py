@@ -26,6 +26,66 @@ CHRONOS_DATASETS = [
     #"weatherbench_weekly",  # Weather time series
     "solar_1h",  # Solar power generation
 ]
+
+PRETRAINING_DATASETS = [
+    "Brazilian Cities Temperature", 
+    "Mexico City Bikes",
+    "Solar (5 Min.)",
+    "Solar (Hourly)", 
+    "Spanish Energy and Weather",
+    "Taxi (Hourly)",
+    "USHCN",
+    "Weatherbench (Daily)",
+    "Weatherbench (Hourly)", 
+    "Weatherbench (Weekly)",
+    "Wiki Daily (100k)",
+    "Wind Farms (Daily)",
+    "Wind Farms (Hourly)"
+]
+IN_DOMAIN_DATASETS = [
+    "Electricity (15 Min.)",
+    "Electricity (Hourly)", 
+    "Electricity (Weekly)",
+    "KDD Cup 2018",
+    "London Smart Meters",
+    "M4 (Daily)",
+    "M4 (Hourly)",
+    "M4 (Monthly)", 
+    "M4 (Weekly)",
+    "Pedestrian Counts",
+    "Rideshare",
+    "Taxi (30 Min.)",
+    "Temperature-Rain",
+    "Uber TLC (Daily)",
+    "Uber TLC (Hourly)"
+]
+
+ZERO_SHOT_DATASETS = [
+    "Australian Electricity",
+    "CIF 2016",
+    "Car Parts",
+    "Covid Deaths",
+    "Dominick",
+    "ERCOT Load",
+    "ETT (15 Min.)",
+    "ETT (Hourly)",
+    "Exchange Rate",
+    "FRED-MD",
+    "Hospital",
+    # All M1 datasets
+    "M1 (Monthly)", "M1 (Quarterly)", "M1 (Yearly)",
+    # All M3 datasets
+    "M3 (Monthly)", "M3 (Quarterly)", "M3 (Yearly)",
+    # Remaining M4 datasets
+    "M4 (Quarterly)", "M4 (Yearly)",
+    "M5",
+    "NN5 (Daily)", "NN5 (Weekly)",
+    # Tourism datasets
+    "Tourism (Monthly)", "Tourism (Quarterly)", "Tourism (Yearly)",
+    "Traffic",
+    "Weather"
+]
+
 KERNEL_BANK = [
     # Seasonal/Periodic patterns for different frequencies
     ExpSineSquared(periodicity=24),  # Daily
@@ -108,29 +168,42 @@ def is_series_valid(series, max_zero_or_nan):
     return True
 def load_chronos_datasets(max_zero_or_nan):
     """Load a subset of datasets from autogluon/chronos_datasets"""
-    all_series = []
+    #all_series = []
 
-    for dataset_name in tqdm(CHRONOS_DATASETS, desc="Loading datasets"):
-        try:
-            tqdm.write(f"\nLoading dataset: {dataset_name}")
-            ds = load_dataset("autogluon/chronos_datasets", dataset_name, split='train', cache_dir='./cache')
-            if dataset_name=='electricity_15min':
-                series = ds['consumption_kW']
-            elif dataset_name == 'solar_1h':
-                series = ds['power_mw']
-            else:
-                series = ds["target"]
-            previous_length = len(series)
-            series = list(filter(lambda s: is_series_valid(s, max_zero_or_nan), series))
-            if previous_length!=len(series): tqdm.write(f'Ditched {previous_length-len(series)} series')
-            tqdm.write(f"Loaded {len(series)} series from {dataset_name}")
-            all_series.extend([np.array(s) for s in series])
-        except Exception as e:
-            tqdm.write(f"Warning: Could not load dataset {dataset_name}: {str(e)}")
-            continue
+    # for dataset_name in tqdm(CHRONOS_DATASETS, desc="Loading datasets"):
+    #     try:
+    #         tqdm.write(f"\nLoading dataset: {dataset_name}")
+    #         ds = load_dataset("autogluon/chronos_datasets", dataset_name, split='train', cache_dir='./cache')
+    #         if dataset_name=='electricity_15min':
+    #             series = ds['consumption_kW']
+    #         elif dataset_name == 'solar_1h':
+    #             series = ds['power_mw']
+    #         else:
+    #             series = ds["target"]
+    #         previous_length = len(series)
+    #         series = list(filter(lambda s: is_series_valid(s, max_zero_or_nan), series))
+    #         if previous_length!=len(series): tqdm.write(f'Ditched {previous_length-len(series)} series')
+    #         tqdm.write(f"Loaded {len(series)} series from {dataset_name}")
+    #         all_series.extend([np.array(s) for s in series])
+    #     except Exception as e:
+    #         tqdm.write(f"Warning: Could not load dataset {dataset_name}: {str(e)}")
+    #         continue
+        
+    training_series = []
 
-    print(f"\nTotal series loaded: {len(all_series)}")
-    return all_series
+    for datasets in PRETRAINING_DATASETS:
+        series = load_dataset("autogluon/chronos_datasets", datasets)
+        if 'train' in series:
+            training_series.extend(series['train']['target'])
+    
+    for datasets in IN_DOMAIN_DATASETS:
+        series = load_dataset("autogluon/chronos_datasets", datasets)
+        if 'train' in series:
+            n_train = len(0.8*series['train']['target'])
+            training_series.extend(series['train']['target'][:n_train])
+
+    print(f"\nTotal series loaded: {len(training_series)}")
+    return training_series
 
 
 def random_binary_map(a: Kernel, b: Kernel) -> Kernel:
