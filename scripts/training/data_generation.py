@@ -27,64 +27,73 @@ CHRONOS_DATASETS = [
     "solar_1h",  # Solar power generation
 ]
 
-PRETRAINING_DATASETS = [
-    "Brazilian Cities Temperature", 
-    "Mexico City Bikes",
-    "Solar (5 Min.)",
-    "Solar (Hourly)", 
-    "Spanish Energy and Weather",
-    "Taxi (Hourly)",
-    "USHCN",
-    "Weatherbench (Daily)",
-    "Weatherbench (Hourly)", 
-    "Weatherbench (Weekly)",
-    "Wiki Daily (100k)",
-    "Wind Farms (Daily)",
-    "Wind Farms (Hourly)"
-]
-IN_DOMAIN_DATASETS = [
-    "Electricity (15 Min.)",
-    "Electricity (Hourly)", 
-    "Electricity (Weekly)",
-    "KDD Cup 2018",
-    "London Smart Meters",
-    "M4 (Daily)",
-    "M4 (Hourly)",
-    "M4 (Monthly)", 
-    "M4 (Weekly)",
-    "Pedestrian Counts",
-    "Rideshare",
-    "Taxi (30 Min.)",
-    "Temperature-Rain",
-    "Uber TLC (Daily)",
-    "Uber TLC (Hourly)"
-]
+PRETRAINING_DATASETS = {
+    #    "brazilian_cities_temperature": "target" --> not on huggingface,
+    "mexico_city_bikes": "target",
+    "solar": "target",
+    "solar_1h": "target",
+    #    "spanish_energy_and_weather": "target"  --> not on huggingface,
+    "taxi_1h": "target",
+    "ushcn_daily": "target",
+    "weatherbench_daily": "target",
+    "weatherbench_hourly": "target",
+    "weatherbench_weekly": "target",
+    "wiki_daily_100k": "target",
+    "wind_farms_daily": "target",
+    "wind_farms_hourly": "target",
+}
 
-ZERO_SHOT_DATASETS = [
-    "Australian Electricity",
-    "CIF 2016",
-    "Car Parts",
-    "Covid Deaths",
-    "Dominick",
-    "ERCOT Load",
-    "ETT (15 Min.)",
-    "ETT (Hourly)",
-    "Exchange Rate",
-    "FRED-MD",
-    "Hospital",
+IN_DOMAIN_DATASETS = {
+    "electricity_15min": "target",
+    "monash_electricity_hourly": "target",
+    "monash_electricity_weekly": "target",
+    "monash_kdd_cup_2018": "target",
+    "monash_london_smart_meters": "target",
+    "m4_daily": "target",
+    "m4_hourly": "target",
+    "m4_monthly": "target",
+    "m4_weekly": "target",
+    "monash_pedestrian_counts": "target",
+    "monash_rideshare": "target",
+    "taxi_30min": "target",
+    "monash_temperature_rain": "target",
+    "uber_tlc_daily": "target",
+    "uber_tlc_hourly": "target",
+}
+
+ZERO_SHOT_DATASETS = {
+    "monash_australian_electricity": "target",
+    "monash_cif_2016": "target",
+    "monash_car_parts": "target",
+    "monash_covid_deaths": "target",
+    "dominick": "target",
+    "ercot": "target",
+    #    "ett_15min": "target" --> not on huggingface,
+    #    "ett_hourly": "target" --> not on huggingface,
+    "exchange_rate": "target",
+    "monash_fred_md": "target",
+    "monash_hospital": "target",
     # All M1 datasets
-    "M1 (Monthly)", "M1 (Quarterly)", "M1 (Yearly)",
+    "monash_m1_monthly": "target",
+    "monash_m1_quarterly": "target",
+    "monash_m1_yearly": "target",
     # All M3 datasets
-    "M3 (Monthly)", "M3 (Quarterly)", "M3 (Yearly)",
+    "monash_m3_monthly": "target",
+    "monash_m3_quarterly": "target",
+    "monash_m3_yearly": "target",
     # Remaining M4 datasets
-    "M4 (Quarterly)", "M4 (Yearly)",
-    "M5",
-    "NN5 (Daily)", "NN5 (Weekly)",
+    "m4_quarterly": "target",
+    "m4_yearly": "target",
+    "m5": "target",
+    "nn5": "target",
+    "monash_nn5_weekly": "target",
     # Tourism datasets
-    "Tourism (Monthly)", "Tourism (Quarterly)", "Tourism (Yearly)",
-    "Traffic",
-    "Weather"
-]
+    "monash_tourism_monthly": "target",
+    "monash_tourism_quarterly": "target",
+    "monash_tourism_yearly": "target",
+    "monash_traffic": "target",
+    "monash_weather": "target",
+}
 
 KERNEL_BANK = [
     # Seasonal/Periodic patterns for different frequencies
@@ -191,16 +200,16 @@ def load_chronos_datasets(max_zero_or_nan):
         
     training_series = []
 
-    for datasets in PRETRAINING_DATASETS:
+    for datasets, target_name in PRETRAINING_DATASETS.items():
         series = load_dataset("autogluon/chronos_datasets", datasets)
         if 'train' in series:
-            training_series.extend(series['train']['target'])
+            training_series.extend(series['train'][target_name])
     
-    for datasets in IN_DOMAIN_DATASETS:
+    for datasets, target_name in IN_DOMAIN_DATASETS.items():
         series = load_dataset("autogluon/chronos_datasets", datasets)
         if 'train' in series:
-            n_train = len(0.8*series['train']['target'])
-            training_series.extend(series['train']['target'][:n_train])
+            n_train = len(0.8*series['train'][target_name])
+            training_series.extend(series['train'][target_name][:n_train])
 
     print(f"\nTotal series loaded: {len(training_series)}")
     return training_series
