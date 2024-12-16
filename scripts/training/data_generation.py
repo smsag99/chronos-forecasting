@@ -23,20 +23,20 @@ CHRONOS_DATASETS = [
     "electricity_15min",  # Common energy dataset
     "m4_hourly",  # M4 competition hourly data
     "monash_traffic",  # Traffic volume data
-    #"weatherbench_weekly",  # Weather time series
+    # "weatherbench_weekly",  # Weather time series
     "solar_1h",  # Solar power generation
 ]
 
 PRETRAINING_DATASETS = {
     #    "brazilian_cities_temperature": "target" --> not on huggingface,
-    "mexico_city_bikes": "target",
-    "solar": "target",
-    "solar_1h": "target",
+    "mexico_city_bikes": "target",  # needs to be verified: viewer was not available
+    "solar": "power_mw",
+    "solar_1h": "power_mw",
     #    "spanish_energy_and_weather": "target"  --> not on huggingface,
     "taxi_1h": "target",
-    "ushcn_daily": "target",
+    "ushcn_daily": "target",  # needs to be verified: viewer was not available
     "weatherbench_daily": "target",
-    "weatherbench_hourly": "target",
+    "weatherbench_hourly": "target",  # ?
     "weatherbench_weekly": "target",
     "wiki_daily_100k": "target",
     "wind_farms_daily": "target",
@@ -44,7 +44,7 @@ PRETRAINING_DATASETS = {
 }
 
 IN_DOMAIN_DATASETS = {
-    "electricity_15min": "target",
+    "electricity_15min": "consumption_kW",
     "monash_electricity_hourly": "target",
     "monash_electricity_weekly": "target",
     "monash_kdd_cup_2018": "target",
@@ -121,12 +121,12 @@ class TSMixupConfig:
     max_series_to_mix: int = 3
     alpha: float = 1.5
     min_length: int = 128
-    max_length: int = 512 # Reduced for testing
+    max_length: int = 512  # Reduced for testing
     scale_range: tuple = (-15.0, 15.0)
 
 
 class TSMixup:
-    def __init__(self, config: TSMixupConfig, min_perc_length:float=0.5):
+    def __init__(self, config: TSMixupConfig, min_perc_length: float = 0.5):
         self.config = config
         self.min_perc_length = min_perc_length
 
@@ -136,12 +136,14 @@ class TSMixup:
             scale = 1.0
         return series / scale
 
-    def percentage_long_enough(self,time_series_list):
-        return np.array([len(series)>=self.config.max_length for series in time_series_list]).mean()
+    def percentage_long_enough(self, time_series_list):
+        return np.array([len(series) >= self.config.max_length for series in time_series_list]).mean()
 
     def generate_single_mix(self, series_list: List[np.ndarray]) -> Dict:
-        assert len(series_list)>0, "series_list cannot be empty"
-        assert self.percentage_long_enough(series_list)>=self.min_perc_length,f'Maximum length must be reached by at least {100*self.min_perc_length:.2f}% of the inserted series'
+        assert len(series_list) > 0, "series_list cannot be empty"
+        assert (
+            self.percentage_long_enough(series_list) >= self.min_perc_length
+        ), f"Maximum length must be reached by at least {100*self.min_perc_length:.2f}% of the inserted series"
 
         # Number of series to mix (between 1 and max_series_to_mix)
         k = min(np.random.randint(1, self.config.max_series_to_mix + 1), len(series_list))
@@ -152,7 +154,6 @@ class TSMixup:
         # Select and process series
         selected_series = []
         indices = np.random.choice(len(series_list), k, replace=False)
-
 
         for idx in indices:
             series = series_list[idx]
@@ -171,13 +172,18 @@ class TSMixup:
 
         return {"start": pd.Timestamp("2020-01-01"), "target": mixed_series.astype(np.float32)}
 
+
 def is_series_valid(series, max_zero_or_nan):
-    if np.isnan(series).mean()>=max_zero_or_nan: return False
-    if (np.abs(series) <= 1e-13).mean() >= max_zero_or_nan: return False
+    if np.isnan(series).mean() >= max_zero_or_nan:
+        return False
+    if (np.abs(series) <= 1e-13).mean() >= max_zero_or_nan:
+        return False
     return True
+
+
 def load_chronos_datasets(max_zero_or_nan):
     """Load a subset of datasets from autogluon/chronos_datasets"""
-    #all_series = []
+    # all_series = []
 
     # for dataset_name in tqdm(CHRONOS_DATASETS, desc="Loading datasets"):
     #     try:
@@ -197,19 +203,17 @@ def load_chronos_datasets(max_zero_or_nan):
     #     except Exception as e:
     #         tqdm.write(f"Warning: Could not load dataset {dataset_name}: {str(e)}")
     #         continue
-        
+
     training_series = []
 
     for datasets, target_name in PRETRAINING_DATASETS.items():
-        series = load_dataset("autogluon/chronos_datasets", datasets)
-        if 'train' in series:
-            training_series.extend(series['train'][target_name])
-    
+        series = load_dataset("autogluon/chronos_datasets", datasets, split="train")
+        training_series.extend(series[target_name])
+
     for datasets, target_name in IN_DOMAIN_DATASETS.items():
-        series = load_dataset("autogluon/chronos_datasets", datasets)
-        if 'train' in series:
-            n_train = len(0.8*series['train'][target_name])
-            training_series.extend(series['train'][target_name][:n_train])
+        series = load_dataset("autogluon/chronos_datasets", datasets, split="train")
+        n_train = len(0.8 * series[target_name])
+        training_series.extend(series[target_name][:n_train])
 
     print(f"\nTotal series loaded: {len(training_series)}")
     return training_series
@@ -245,7 +249,9 @@ def generate_kernel_synth_ts(length: int = 512, max_kernels: int = 5) -> Dict:
         return generate_kernel_synth_ts(length, max_kernels)
 
 
-def generate_datasets(output_dir: str, n_synthetic: int = 1000, n_mixup: int = 1000, max_zero_or_nan=0.9,seed: Optional[int] = None) -> None:
+def generate_datasets(
+    output_dir: str, n_synthetic: int = 1000, n_mixup: int = 1000, max_zero_or_nan=0.9, seed: Optional[int] = None
+) -> None:
     """Generate both KernelSynth and TSMixup augmented datasets"""
     if seed is not None:
         np.random.seed(seed)
@@ -272,6 +278,6 @@ def generate_datasets(output_dir: str, n_synthetic: int = 1000, n_mixup: int = 1
     ArrowWriter(compression="lz4").write_to_file(mixup_data, output_dir / "tsmixup_data.arrow")
 
 
-#generate_datasets('./generated_datasets')
+# generate_datasets('./generated_datasets')
 if __name__ == "__main__":
-    generate_datasets('./generated_datasets')
+    generate_datasets("./generated_datasets")
