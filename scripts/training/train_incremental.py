@@ -107,6 +107,7 @@ def incremental_training(
     # Load model and config from checkpoint if provided, otherwise use config
     if checkpoint_path:
         model, chronos_config = load_checkpoint(checkpoint_path, device_map)
+        resume_from_checkpoint = checkpoint_path
     else:
         # Initialize new model from config
         chronos_config = ChronosConfig(
@@ -143,6 +144,7 @@ def incremental_training(
                 config=model_config
             )
         model = ChronosModel(config=chronos_config, model=inner_model)
+        resume_from_checkpoint = None
     
     # Load data batch
     train_data = load_data_batch(
@@ -195,7 +197,7 @@ def incremental_training(
     )
 
     # Train
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     
     # Save final checkpoint with consistent path
     output_dir = Path(config['output_dir'])
