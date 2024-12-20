@@ -19,23 +19,25 @@ from chronos.base import BaseChronosPipeline, ForecastType
 
 @dataclass
 class ChronosBartConfig:
-    """configurations class for chronos-bart architecture"""
-    context_lenght: int
-    prediction_length: int
-    nput_patch_size: int
+    """Configuration class for Chronos-BART architecture"""
+    context_length: int
+    prediction_length: int 
+    input_patch_size: int
     input_patch_stride: int
     quantiles: List[float]
     use_reg_token: bool = False
 
-class ChronosBartOutput:
+@dataclass 
+class ChronosBartOutput(ModelOutput):
+    """Output class for Chronos-BART predictions"""
     loss: Optional[torch.Tensor] = None
     quantile_preds: Optional[torch.Tensor] = None
     attentions: Optional[torch.Tensor] = None
     cross_attentions: Optional[torch.Tensor] = None
 
 class Patch(nn.Module):
-    """time series patching layer"""
-    def __init__(self, patch_size, patch_stride) -> None:
+    """Time series patching layer"""
+    def __init__(self, patch_size: int, patch_stride: int) -> None:
         super().__init__()
         self.patch_size = patch_size
         self.patch_stride = patch_stride
@@ -215,11 +217,20 @@ class ChronosBartForForecasting(BartPreTrainedModel):
                 [attention_mask, torch.ones_like(reg_embeds[:,:,0])],
                 dim=-1
             )
-            
+        
+        # Create decoder inputs - this is the key fix
+        decoder_input_ids = torch.full(
+            (batch_size, 1),
+            self.config.decoder_start_token_id,
+            dtype=torch.long,
+            device=input_embeds.device
+        )
+                
         # Pass through BART
         outputs = self.bart(
             inputs_embeds=input_embeds,
             attention_mask=attention_mask,
+            decoder_input_ids=decoder_input_ids,  # Added this
             return_dict=True
         )
         
@@ -289,8 +300,8 @@ class ChronosBartForForecasting(BartPreTrainedModel):
         return ChronosBartOutput(
             loss=loss,
             quantile_preds=quantile_preds,
-            attentions=outputs.attentions,
-            cross_attentions=outputs.cross_attentions
+            attentions=outputs.encoder_attentions,
+            cross_attentions=outputs.decoder_attentions
         )
     
     def _init_decoder(self, config):
