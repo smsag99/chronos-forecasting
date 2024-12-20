@@ -11,6 +11,13 @@ from .chronos import (
 )
 from .chronos_bolt import ChronosBoltConfig, ChronosBoltPipeline
 
+from .chronos_bolt_bart import (
+    ChronosBartConfig,
+    ChronosBartForForecasting,
+    ChronosBartPipeline,
+    ChronosBartOutput
+)
+
 __all__ = [
     "BaseChronosPipeline",
     "ForecastType",
@@ -20,5 +27,11 @@ __all__ = [
     "ChronosTokenizer",
     "MeanScaleUniformBins",
     "ChronosBoltConfig",
-    "ChronosBoltPipeline",
+    "ChronosBoltPipeline","ChronosBartConfig",
+    "ChronosBartForForecasting",
+    "ChronosBartPipeline",
+    "ChronosBartOutput",
+    "InstanceNorm",
+    "Patch",
+    "ResidualBlock"
 ]
