@@ -104,10 +104,17 @@ def incremental_training(
     config = load_yaml_config(config_path)
     config = update_config_for_incremental(config, batch_start, checkpoint_path)
     
-    # Load model and config from checkpoint if provided, otherwise use config
+    resume_checkpoint = None
+    if checkpoint_path:
+        # Check if there's a trainer state file
+        state_file = Path(checkpoint_path) / "trainer_state.json"
+        if state_file.exists():
+            resume_checkpoint = checkpoint_path
+            logger.info(f"Resuming training from {checkpoint_path}")
+        else:
+            logger.info(f"No trainer state found in {checkpoint_path}, will initialize from weights but start training fresh")
     if checkpoint_path:
         model, chronos_config = load_checkpoint(checkpoint_path, device_map)
-        resume_from_checkpoint = checkpoint_path
     else:
         # Initialize new model from config
         chronos_config = ChronosConfig(
@@ -136,15 +143,16 @@ def incremental_training(
         if config['model_type'] == "seq2seq":
             inner_model = AutoModelForSeq2SeqLM.from_pretrained(
                 config['model_id'], 
-                config=model_config
+                config=model_config,
+                ignore_mismatched_sizes=True
             )
         else:
             inner_model = AutoModelForCausalLM.from_pretrained(
                 config['model_id'], 
-                config=model_config
+                config=model_config,
+                ignore_mismatched_sizes=True
             )
         model = ChronosModel(config=chronos_config, model=inner_model)
-        resume_from_checkpoint = None
     
     # Load data batch
     train_data = load_data_batch(
@@ -187,6 +195,8 @@ def incremental_training(
         torch_compile=config.get('torch_compile', True),
         report_to=["tensorboard"],
         remove_unused_columns=False,
+        save_strategy="steps",
+        overwrite_output_dir=False,
     )
 
     # Create trainer
@@ -197,7 +207,7 @@ def incremental_training(
     )
 
     # Train
-    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+    trainer.train(resume_from_checkpoint=resume_checkpoint)
     
     # Save final checkpoint with consistent path
     output_dir = Path(config['output_dir'])
