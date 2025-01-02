@@ -131,6 +131,7 @@ class TSMixup:
         self.min_perc_length = min_perc_length
 
     def mean_scale(self, series: np.ndarray) -> np.ndarray:
+        series = np.array(series)  # Convert to numpy array
         scale = np.nanmean(np.abs(series))
         if scale == 0:
             scale = 1.0
@@ -162,7 +163,7 @@ class TSMixup:
                 series = series_list[idx]
             start_idx = np.random.randint(0, len(series) - length)
             series = series[start_idx : start_idx + length]
-            selected_series.append(self.mean_scale(series))
+            selected_series.append(self.mean_scale(np.array(series)))
 
         # Mix series using Dirichlet weights
         weights = np.random.dirichlet([self.config.alpha] * k)
