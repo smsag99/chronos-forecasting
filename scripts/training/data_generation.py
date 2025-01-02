@@ -210,10 +210,10 @@ def load_chronos_datasets(max_zero_or_nan):
         series = load_dataset("autogluon/chronos_datasets", datasets, split="train")
         training_series.extend(series[target_name])
 
-    for datasets, target_name in IN_DOMAIN_DATASETS.items():
-        series = load_dataset("autogluon/chronos_datasets", datasets, split="train")
-        n_train = len(0.8 * series[target_name])
-        training_series.extend(series[target_name][:n_train])
+    # for datasets, target_name in IN_DOMAIN_DATASETS.items():
+    #     series = load_dataset("autogluon/chronos_datasets", datasets, split="train")
+    #     n_train = len(0.8 * series[target_name])
+    #     training_series.extend(series[target_name][:n_train])
 
     print(f"\nTotal series loaded: {len(training_series)}")
     return training_series
